@@ -20,12 +20,9 @@ public class PlayerActivity extends AppCompatActivity {
     private int currentIndex;
     private MusicService musicService;
     private boolean isBound = false;
-
-
     private TextView currentTimeText, totalTimeText; // Добавляем TextView для времени
-
-
     private Handler updateSeekBarHandler = new Handler();
+
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -49,6 +46,8 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player); // Стандартный макет (без YouTube Music)
+
+        new DatabaseHelper(this);
 
         // Инициализация элементов
         currentTimeText = findViewById(R.id.currentTimeText);

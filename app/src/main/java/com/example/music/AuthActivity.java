@@ -1,7 +1,8 @@
 package com.example.music;
 
-import android.os.Bundle;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -21,6 +22,7 @@ public class AuthActivity extends AppCompatActivity {
 
     EditText editTextLogin;
     EditText editTextPassword;
+    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +34,8 @@ public class AuthActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        dbHelper = new DatabaseHelper(this);
         editTextLogin = findViewById(R.id.editTextLoginAuth);
         editTextPassword = findViewById(R.id.editTextPasswordAuth);
     }
@@ -40,15 +44,19 @@ public class AuthActivity extends AppCompatActivity {
         String login = editTextLogin.getText().toString();
         String password = editTextPassword.getText().toString();
 
-        Optional<User> foundUser = findUserByLoginPass(login, password);
+        if (login.isEmpty() || password.isEmpty()) {
+            Snackbar.make(view, "Введите логин и пароль", 3000).show();
+            return;
+        }
 
-        if (foundUser.isPresent()) {
-            User user = foundUser.get();
+        User user = dbHelper.getUser(login, password);
+
+        if (user != null) {
             Snackbar.make(view, "Добро пожаловать " + user.getNickname() + "!", 3000).show();
             Intent intent = new Intent(this, MainActivity.class);
+            intent.putExtra("userId", user.getUserId()); // Передаем ID пользователя
             startActivity(intent);
-        }
-        else {
+        } else {
             Snackbar.make(view, "Неверный логин или пароль!", 3000).show();
         }
     }
@@ -59,8 +67,9 @@ public class AuthActivity extends AppCompatActivity {
         finish();
     }
 
-    private Optional<User> findUserByLoginPass(String login, String password) {
-        return User.users.stream().filter(user -> user.getLogin().equals(login))
-                .filter(user -> user.getPassword().equals(password)).findFirst();
+    @Override
+    protected void onDestroy() {
+        dbHelper.close();
+        super.onDestroy();
     }
 }
