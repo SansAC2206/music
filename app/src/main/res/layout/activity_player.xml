@@ -50,7 +50,8 @@
             android:id="@+id/prevButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@android:drawable/ic_media_previous"/>
+            android:src="@android:drawable/ic_media_previous"
+            android:backgroundTint="@color/black"/>
 
         <ImageButton
             android:id="@+id/playPauseButton"
@@ -58,12 +59,14 @@
             android:layout_height="48dp"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:src="@android:drawable/ic_media_play"/>
+            android:src="@android:drawable/ic_media_play"
+            android:backgroundTint="@color/black"/>
 
         <ImageButton
             android:id="@+id/nextButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@android:drawable/ic_media_next"/>
+            android:src="@android:drawable/ic_media_next"
+            android:backgroundTint="@color/black"/>
     </LinearLayout>
 </LinearLayout>
