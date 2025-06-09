@@ -20,6 +20,7 @@ public class MusicService extends Service {
 
     public class MusicBinder extends Binder {
         public MusicService getService() {
+
             return MusicService.this;
         }
     }
@@ -27,6 +28,7 @@ public class MusicService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+
         return binder;
     }
 
