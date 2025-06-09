@@ -10,7 +10,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Введите название песни"
-        android:inputType="text"/>
+        android:inputType="text"
+        android:textColor="@color/white"/>
 
     <Button
         android:id="@+id/searchButton"

@@ -16,7 +16,7 @@
         android:textSize="25sp"
         android:layout_marginTop="28dp"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginLeft="100dp"
         app:layout_constraintTop_toTopOf="parent"
         />
     <ImageButton
@@ -28,9 +28,9 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="23dp"
-        android:layout_marginLeft="47dp"
+        android:layout_marginLeft="10dp"
         android:backgroundTint="@color/black"
-        app:tint="@color/gray"
+        app:tint="@color/white"
         />
     <TextView
         android:id="@+id/textViewNickReg"
@@ -40,7 +40,7 @@
         android:textSize="23sp"
         app:layout_constraintTop_toBottomOf="@+id/textViewRegistration"
         app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginLeft="56dp"
+        android:layout_marginLeft="20dp"
         android:layout_marginTop="30dp"
         />
     <EditText
@@ -48,9 +48,10 @@
         android:layout_width="300dp"
         android:layout_height="40dp"
         android:textSize="23sp"
+        android:textAlignment="center"
         app:layout_constraintTop_toBottomOf="@+id/textViewNickReg"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginLeft="20dp"
         android:textColor="@color/black"
         android:background="@color/gray"
         />
@@ -62,7 +63,7 @@
         android:textSize="23sp"
         app:layout_constraintTop_toBottomOf="@+id/editTextNickReg"
         app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginLeft="56dp"
+        android:layout_marginLeft="20dp"
         android:layout_marginTop="30dp"
         android:textColor="@color/white"
         />
@@ -74,7 +75,8 @@
         android:inputType="textEmailAddress"
         app:layout_constraintTop_toBottomOf="@+id/textViewEmailReg"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginLeft="20dp"
+        android:textAlignment="center"
         android:textColor="@color/black"
         android:background="@color/gray"
         />
@@ -86,7 +88,7 @@
         android:textSize="23sp"
         app:layout_constraintTop_toBottomOf="@+id/editTextLoginReg"
         app:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginLeft="56dp"
+        android:layout_marginLeft="20dp"
         android:layout_marginTop="30dp"
         android:textColor="@color/white"
         />
@@ -96,11 +98,12 @@
         android:layout_height="40dp"
         android:textSize="23sp"
         android:inputType="textPassword"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="20dp"
         app:layout_constraintTop_toBottomOf="@id/textViewPassAuth"
         android:textColor="@color/black"
         android:background="@color/gray"
+        android:textAlignment="center"
         />
     <Button
         android:id="@+id/RegBtn_Click"
@@ -114,7 +117,7 @@
         android:textSize="25sp"
         app:layout_constraintTop_toBottomOf="@+id/editTextPasswordReg"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginLeft="120dp"
         android:textColor="@color/black"
         android:backgroundTint="@color/darkgray"
         />
