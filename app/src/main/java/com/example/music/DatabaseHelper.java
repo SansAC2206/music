@@ -8,8 +8,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 import com.example.music.Models.User;
 import java.util.ArrayList;
 import java.util.List;
+import android.util.Log;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
+    private static final String TAG = "DatabaseHelper";
     private static final String DATABASE_NAME = "MusicApp.db";
     private static final int DATABASE_VERSION = 1;
 
@@ -51,8 +53,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
+
     @Override
     public void onCreate(SQLiteDatabase db) {
+        Log.d(TAG, "Creating database tables");
         // Создание таблицы пользователей
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
                 + COLUMN_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -61,15 +65,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_USER_NICKNAME + " TEXT" + ")";
         db.execSQL(CREATE_USERS_TABLE);
 
-        // Создание таблицы медиа
+        // Создание таблицы медиа (исправлено для использования COLUMN_MEDIA_ID)
         String CREATE_MEDIA_TABLE = "CREATE TABLE " + TABLE_MEDIA + "("
                 + COLUMN_MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_MEDIA_TITLE + " TEXT,"
-                + COLUMN_MEDIA_URI + " TEXT UNIQUE,"
+                + COLUMN_MEDIA_URI + " TEXT,"
                 + COLUMN_MEDIA_TYPE + " TEXT,"
                 + COLUMN_MEDIA_IMAGE_URI + " TEXT,"
                 + COLUMN_USER_ADDED + " INTEGER,"
-                + "FOREIGN KEY(" + COLUMN_USER_ADDED + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + ")" + ")";
+                + "FOREIGN KEY(" + COLUMN_USER_ADDED + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "),"
+                + "UNIQUE(" + COLUMN_MEDIA_URI + ", " + COLUMN_USER_ADDED + ")" + ")"; // Уникальная комбинация URI и пользователя
         db.execSQL(CREATE_MEDIA_TABLE);
 
         // Создание таблицы плейлистов
@@ -101,12 +106,31 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        Log.d(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLIST_MEDIA);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_SONGS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLISTS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_MEDIA);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         onCreate(db);
+    }
+
+    public boolean isMediaExistsForUser(String mediaUri, long userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                TABLE_MEDIA,
+                new String[]{COLUMN_MEDIA_ID},
+                COLUMN_MEDIA_URI + " = ? AND " + COLUMN_USER_ADDED + " = ?",
+                new String[]{mediaUri, String.valueOf(userId)},
+                null,
+                null,
+                null
+        );
+
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+        return exists;
     }
 
     // Методы для работы с пользователями
@@ -179,6 +203,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Методы для работы с медиа
     public long addMedia(String title, String uri, String type, String imageUri, long userId) {
+        // Сначала проверяем, существует ли уже такая запись
+        if (isMediaExistsForUser(uri, userId)) {
+            return -1; // Уже существует
+        }
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_MEDIA_TITLE, title);
