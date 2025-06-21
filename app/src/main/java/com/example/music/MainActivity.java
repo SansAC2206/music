@@ -137,6 +137,13 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("currentIndex", position);
             startActivity(intent);
         });
+
+        Button playlistsButton = findViewById(R.id.playlistsButton);
+        playlistsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PlaylistsListActivity.class);
+            intent.putExtra("userId", userId);
+            startActivity(intent);
+        });
     }
 
     // Метод для получения имени файла

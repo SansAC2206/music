@@ -5,15 +5,15 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 import com.example.music.Models.User;
 import java.util.ArrayList;
 import java.util.List;
-import android.util.Log;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "DatabaseHelper";
     private static final String DATABASE_NAME = "MusicApp.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2; // Увеличена версия для обновления БД
 
     // Таблица пользователей
     private static final String TABLE_USERS = "users";
@@ -22,50 +22,50 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_USER_PASSWORD = "password";
     private static final String COLUMN_USER_NICKNAME = "nickname";
 
-    // Таблица медиа (песни/видео)
+    // Таблица медиа
     public static final String TABLE_MEDIA = "media";
     private static final String COLUMN_MEDIA_ID = "media_id";
     private static final String COLUMN_MEDIA_TITLE = "title";
     public static final String COLUMN_MEDIA_URI = "uri";
-    private static final String COLUMN_MEDIA_TYPE = "type"; // "audio" или "video"
+    private static final String COLUMN_MEDIA_TYPE = "type";
     private static final String COLUMN_MEDIA_IMAGE_URI = "image_uri";
     public static final String COLUMN_USER_ADDED = "user_id_added";
 
     // Таблица плейлистов
     public static final String TABLE_PLAYLISTS = "playlists";
-    private static final String COLUMN_PLAYLIST_ID = "playlist_id";
+    public static final String COLUMN_PLAYLIST_ID = "playlist_id";
     public static final String COLUMN_PLAYLIST_NAME = "name";
     private static final String COLUMN_PLAYLIST_IMAGE_URI = "image_uri";
 
-    // Таблица связи медиа и плейлистов (многие ко многим)
-    private static final String TABLE_PLAYLIST_MEDIA = "playlist_media";
-    private static final String COLUMN_PLAYLIST_MEDIA_ID = "id";
-    private static final String COLUMN_PM_PLAYLIST_ID = "playlist_id";
-    private static final String COLUMN_PM_MEDIA_ID = "media_id";
+    // Таблица песен в плейлистах
+    public static final String TABLE_PLAYLIST_SONGS = "playlist_songs";
+    public static final String COLUMN_SONG_ID = "song_id";
+    public static final String COLUMN_SONG_NAME = "name";
+    public static final String COLUMN_PLAYLIST_ID_REF = "playlist_id";
 
-    // Таблица песен (добавлена для совместимости с PlaylistDetailActivity)
-    private static final String TABLE_SONGS = "songs";
-    private static final String COLUMN_SONG_ID = "song_id";
-    private static final String COLUMN_SONG_NAME = "name";
-    private static final String COLUMN_SONG_PLAYLIST_ID = "playlist_id";
+    // Таблица связи медиа и плейлистов
+    public static final String TABLE_PLAYLIST_MEDIA = "playlist_media";
+    public static final String COLUMN_PLAYLIST_MEDIA_ID = "id";
+    public static final String COLUMN_PM_PLAYLIST_ID = "playlist_id";
+    public static final String COLUMN_PM_MEDIA_ID = "media_id";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
-
     @Override
     public void onCreate(SQLiteDatabase db) {
         Log.d(TAG, "Creating database tables");
-        // Создание таблицы пользователей
+
+        // Таблица пользователей
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
                 + COLUMN_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_USER_EMAIL + " TEXT UNIQUE,"
                 + COLUMN_USER_PASSWORD + " TEXT,"
-                + COLUMN_USER_NICKNAME + " TEXT" + ")";
+                + COLUMN_USER_NICKNAME + " TEXT)";
         db.execSQL(CREATE_USERS_TABLE);
 
-        // Создание таблицы медиа (исправлено для использования COLUMN_MEDIA_ID)
+        // Таблица медиа
         String CREATE_MEDIA_TABLE = "CREATE TABLE " + TABLE_MEDIA + "("
                 + COLUMN_MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_MEDIA_TITLE + " TEXT,"
@@ -74,63 +74,47 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_MEDIA_IMAGE_URI + " TEXT,"
                 + COLUMN_USER_ADDED + " INTEGER,"
                 + "FOREIGN KEY(" + COLUMN_USER_ADDED + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "),"
-                + "UNIQUE(" + COLUMN_MEDIA_URI + ", " + COLUMN_USER_ADDED + ")" + ")"; // Уникальная комбинация URI и пользователя
+                + "UNIQUE(" + COLUMN_MEDIA_URI + ", " + COLUMN_USER_ADDED + "))";
         db.execSQL(CREATE_MEDIA_TABLE);
 
-        // Создание таблицы плейлистов
+        // Таблица плейлистов
         String CREATE_PLAYLISTS_TABLE = "CREATE TABLE " + TABLE_PLAYLISTS + "("
                 + COLUMN_PLAYLIST_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_PLAYLIST_NAME + " TEXT,"
                 + COLUMN_PLAYLIST_IMAGE_URI + " TEXT,"
                 + COLUMN_USER_ADDED + " INTEGER,"
-                + "FOREIGN KEY(" + COLUMN_USER_ADDED + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + ")" + ")";
+                + "FOREIGN KEY(" + COLUMN_USER_ADDED + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USER_ID + "),"
+                + "UNIQUE(" + COLUMN_PLAYLIST_NAME + ", " + COLUMN_USER_ADDED + "))";
         db.execSQL(CREATE_PLAYLISTS_TABLE);
 
-        // Создание таблицы связи плейлистов и медиа
+        // Таблица песен в плейлистах
+        String CREATE_PLAYLIST_SONGS_TABLE = "CREATE TABLE " + TABLE_PLAYLIST_SONGS + "("
+                + COLUMN_SONG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + COLUMN_SONG_NAME + " TEXT,"
+                + COLUMN_PLAYLIST_ID_REF + " INTEGER,"
+                + "FOREIGN KEY(" + COLUMN_PLAYLIST_ID_REF + ") REFERENCES "
+                + TABLE_PLAYLISTS + "(" + COLUMN_PLAYLIST_ID + "))";
+        db.execSQL(CREATE_PLAYLIST_SONGS_TABLE);
+
+        // Таблица связи медиа и плейлистов
         String CREATE_PLAYLIST_MEDIA_TABLE = "CREATE TABLE " + TABLE_PLAYLIST_MEDIA + "("
                 + COLUMN_PLAYLIST_MEDIA_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + COLUMN_PM_PLAYLIST_ID + " INTEGER,"
                 + COLUMN_PM_MEDIA_ID + " INTEGER,"
                 + "FOREIGN KEY(" + COLUMN_PM_PLAYLIST_ID + ") REFERENCES " + TABLE_PLAYLISTS + "(" + COLUMN_PLAYLIST_ID + "),"
-                + "FOREIGN KEY(" + COLUMN_PM_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COLUMN_MEDIA_ID + ")" + ")";
+                + "FOREIGN KEY(" + COLUMN_PM_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COLUMN_MEDIA_ID + "))";
         db.execSQL(CREATE_PLAYLIST_MEDIA_TABLE);
-
-        // Создание таблицы песен (для простой реализации)
-        String CREATE_SONGS_TABLE = "CREATE TABLE " + TABLE_SONGS + "("
-                + COLUMN_SONG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + COLUMN_SONG_NAME + " TEXT,"
-                + COLUMN_SONG_PLAYLIST_ID + " INTEGER,"
-                + "FOREIGN KEY(" + COLUMN_SONG_PLAYLIST_ID + ") REFERENCES " + TABLE_PLAYLISTS + "(" + COLUMN_PLAYLIST_ID + ")" + ")";
-        db.execSQL(CREATE_SONGS_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLIST_MEDIA);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SONGS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLIST_SONGS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLISTS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_MEDIA);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         onCreate(db);
-    }
-
-    public boolean isMediaExistsForUser(String mediaUri, long userId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(
-                TABLE_MEDIA,
-                new String[]{COLUMN_MEDIA_ID},
-                COLUMN_MEDIA_URI + " = ? AND " + COLUMN_USER_ADDED + " = ?",
-                new String[]{mediaUri, String.valueOf(userId)},
-                null,
-                null,
-                null
-        );
-
-        boolean exists = cursor.getCount() > 0;
-        cursor.close();
-        db.close();
-        return exists;
     }
 
     // Методы для работы с пользователями
@@ -202,10 +186,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // Методы для работы с медиа
+    public boolean isMediaExistsForUser(String mediaUri, long userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                TABLE_MEDIA,
+                new String[]{COLUMN_MEDIA_ID},
+                COLUMN_MEDIA_URI + " = ? AND " + COLUMN_USER_ADDED + " = ?",
+                new String[]{mediaUri, String.valueOf(userId)},
+                null,
+                null,
+                null
+        );
+
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+        return exists;
+    }
+
     public long addMedia(String title, String uri, String type, String imageUri, long userId) {
-        // Сначала проверяем, существует ли уже такая запись
         if (isMediaExistsForUser(uri, userId)) {
-            return -1; // Уже существует
+            return -1;
         }
 
         SQLiteDatabase db = this.getWritableDatabase();
@@ -328,8 +329,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_SONG_NAME, songName);
-        values.put(COLUMN_SONG_PLAYLIST_ID, playlistId);
-        long result = db.insert(TABLE_SONGS, null, values);
+        values.put(COLUMN_PLAYLIST_ID_REF, playlistId);
+        long result = db.insert(TABLE_PLAYLIST_SONGS, null, values);
         db.close();
         return result;
     }
@@ -338,9 +339,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ArrayList<String> songs = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.query(
-                TABLE_SONGS,
+                TABLE_PLAYLIST_SONGS,
                 new String[]{COLUMN_SONG_NAME},
-                COLUMN_SONG_PLAYLIST_ID + " = ?",
+                COLUMN_PLAYLIST_ID_REF + " = ?",
                 new String[]{String.valueOf(playlistId)},
                 null, null, null
         );
@@ -353,5 +354,94 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return songs;
+    }
+
+    public ArrayList<String> getPlaylistsForUser(long userId) {
+        ArrayList<String> playlists = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                TABLE_PLAYLISTS,
+                new String[]{COLUMN_PLAYLIST_NAME},
+                COLUMN_USER_ADDED + " = ?",
+                new String[]{String.valueOf(userId)},
+                null, null, null
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                playlists.add(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PLAYLIST_NAME)));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return playlists;
+    }
+
+    public boolean deletePlaylist(long playlistId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Удаляем все песни из плейлиста
+        db.delete(TABLE_PLAYLIST_SONGS,
+                COLUMN_PLAYLIST_ID_REF + " = ?",
+                new String[]{String.valueOf(playlistId)});
+
+        // Удаляем все связи медиа с плейлистом
+        db.delete(TABLE_PLAYLIST_MEDIA,
+                COLUMN_PM_PLAYLIST_ID + " = ?",
+                new String[]{String.valueOf(playlistId)});
+
+        // Удаляем сам плейлист
+        int deleted = db.delete(TABLE_PLAYLISTS,
+                COLUMN_PLAYLIST_ID + " = ?",
+                new String[]{String.valueOf(playlistId)});
+
+        db.close();
+        return deleted > 0;
+    }
+
+    public boolean removeSongFromPlaylist(long playlistId, String songName) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int deleted = db.delete(TABLE_PLAYLIST_SONGS,
+                COLUMN_PLAYLIST_ID_REF + " = ? AND " + COLUMN_SONG_NAME + " = ?",
+                new String[]{String.valueOf(playlistId), songName});
+        db.close();
+        return deleted > 0;
+    }
+
+    // Добавляем эти методы в DatabaseHelper:
+
+//    public List<String> getAllMediaTitles(long userId) {
+//        List<String> mediaTitles = new ArrayList<>();
+//        SQLiteDatabase db = this.getReadableDatabase();
+//        Cursor cursor = db.query(
+//                TABLE_MEDIA,
+//                new String[]{COLUMN_MEDIA_TITLE},
+//                COLUMN_USER_ADDED + " = ?",
+//                new String[]{String.valueOf(userId)},
+//                null, null, null);
+//
+//        if (cursor.moveToFirst()) {
+//            do {
+//                mediaTitles.add(cursor.getString(0));
+//            } while (cursor.moveToNext());
+//        }
+//        cursor.close();
+//        db.close();
+//        return mediaTitles;
+//    }
+
+    public boolean isSongInPlaylist(long playlistId, String songName) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(
+                TABLE_PLAYLIST_SONGS,
+                new String[]{COLUMN_SONG_ID},
+                COLUMN_PLAYLIST_ID_REF + " = ? AND " + COLUMN_SONG_NAME + " = ?",
+                new String[]{String.valueOf(playlistId), songName},
+                null, null, null);
+
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+        return exists;
     }
 }
