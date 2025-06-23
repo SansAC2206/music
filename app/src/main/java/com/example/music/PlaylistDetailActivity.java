@@ -1,10 +1,14 @@
 package com.example.music;
 
+import android.content.ComponentName;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.net.Uri;
+import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.IBinder;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.ContextMenu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -15,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PlaylistDetailActivity extends AppCompatActivity {
     private TextView playlistTitle;
@@ -26,16 +31,35 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     private ArrayAdapter<String> songsAdapter;
     private ArrayAdapter<String> availableSongsAdapter;
     private ArrayList<String> songs = new ArrayList<>();
-    private ArrayList<String> availableSongs = new ArrayList<>();
+    private ArrayList<String> allAvailableSongs = new ArrayList<>(); // Все доступные песни
+    private ArrayList<String> filteredSongs = new ArrayList<>(); // Отфильтрованные песни для отображения
     private DatabaseHelper dbHelper;
     private String playlistName;
     private long userId;
     private long playlistId;
-
-    // Для воспроизведения музыки
-    private MediaPlayer mediaPlayer;
-    private int currentSongIndex = -1;
     private ArrayList<String> songUris = new ArrayList<>();
+
+    // Для воспроизведения музыки через сервис
+    private MusicService musicService;
+    private boolean isBound = false;
+    private int currentSongIndex = -1;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            musicService = binder.getService();
+            isBound = true;
+            if (!songUris.isEmpty()) {
+                musicService.setSongList(songUris, 0);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +78,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         }
 
         dbHelper = new DatabaseHelper(this);
-        mediaPlayer = new MediaPlayer();
 
         // Инициализация UI элементов
         playlistTitle = findViewById(R.id.playlistTitle);
@@ -75,16 +98,34 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             return;
         }
 
+        // Запускаем сервис
+        Intent serviceIntent = new Intent(this, MusicService.class);
+        bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
+
         // Загружаем песни плейлиста
         loadPlaylistSongs();
-        loadAvailableSongs();
+        loadAllAvailableSongs();
 
         // Настройка адаптеров
         songsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, songs);
         songsListView.setAdapter(songsAdapter);
 
-        availableSongsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, availableSongs);
+        availableSongsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, filteredSongs);
         availableSongsListView.setAdapter(availableSongsAdapter);
+
+        // Обработчик ввода текста для поиска песен
+        songNameEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterSongs(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
 
         // Обработчик добавления новой песни по имени
         addSongBtn.setOnClickListener(v -> {
@@ -98,12 +139,14 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
         // Обработчик поиска песен
         searchSongsBtn.setOnClickListener(v -> {
-            loadAvailableSongs();
+            loadAllAvailableSongs();
+            filterSongs(songNameEditText.getText().toString());
         });
 
         // Обработчик добавления песни из списка доступных
         availableSongsListView.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedSong = availableSongs.get(position);
+            String selectedSong = filteredSongs.get(position);
+            songNameEditText.setText(selectedSong);
             addSongToPlaylist(selectedSong);
         });
 
@@ -111,6 +154,8 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         songsListView.setOnItemClickListener((parent, view, position, id) -> {
             playSong(position);
         });
+
+        registerForContextMenu(songsListView);
     }
 
     private void loadPlaylistSongs() {
@@ -119,42 +164,80 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
         // Загружаем URI песен для воспроизведения
         songUris.clear();
-//        for (String songName : songs) {
-//            String uri = dbHelper.getMediaUriByTitle(songName, userId);
-//            songUris.add(uri);
-//        }
+        for (String songName : songs) {
+            String uri = dbHelper.getMediaUriByTitle(songName, userId);
+            if (uri != null) {
+                songUris.add(uri);
+            } else {
+                // Если URI не найден, удаляем песню из плейлиста
+                dbHelper.removeSongFromPlaylist(playlistId, songName);
+            }
+        }
+
+        // Удаляем песни без URI из списка
+        for (int i = songs.size() - 1; i >= 0; i--) {
+            if (i >= songUris.size() || songUris.get(i) == null) {
+                songs.remove(i);
+                if (i < songUris.size()) {
+                    songUris.remove(i);
+                }
+            }
+        }
 
         if (songsAdapter != null) {
             songsAdapter.notifyDataSetChanged();
         }
     }
 
-
-    private void loadAvailableSongs() {
-        availableSongs.clear();
+    private void loadAllAvailableSongs() {
+        allAvailableSongs.clear();
         // Получаем все песни из медиатеки пользователя
-        availableSongs.addAll(dbHelper.getAllMediaTitles(userId));
+        allAvailableSongs.addAll(dbHelper.getAllMediaTitles(userId));
         // Убираем песни, которые уже есть в плейлисте
-        availableSongs.removeAll(songs);
+        allAvailableSongs.removeAll(songs);
+    }
 
-        if (availableSongsAdapter != null) {
-            availableSongsAdapter.notifyDataSetChanged();
+    private void filterSongs(String query) {
+        filteredSongs.clear();
+        if (query.isEmpty()) {
+            // Если запрос пустой, показываем все доступные песни
+            filteredSongs.addAll(allAvailableSongs);
+        } else {
+            // Фильтруем песни по введенному тексту
+            String lowerCaseQuery = query.toLowerCase();
+            for (String song : allAvailableSongs) {
+                if (song.toLowerCase().startsWith(lowerCaseQuery)) {
+                    filteredSongs.add(song);
+                }
+            }
         }
+        availableSongsAdapter.notifyDataSetChanged();
     }
 
     private void addSongToPlaylist(String songName) {
+        // Проверяем, что песня существует в медиатеке
+        String uri = dbHelper.getMediaUriByTitle(songName, userId);
+        if (uri == null) {
+            Toast.makeText(this, "Песня не найдена в вашей медиатеке", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (dbHelper.isSongInPlaylist(playlistId, songName)) {
+            Toast.makeText(this, "Эта песня уже есть в плейлисте", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         long songId = dbHelper.addSongToPlaylist(playlistId, songName);
         if (songId != -1) {
             songs.add(songName);
-//            // Добавляем URI новой песни
-//            String uri = dbHelper.getMediaUriByTitle(songName, userId);
-//            songUris.add(uri);
-
+            songUris.add(uri);
             songsAdapter.notifyDataSetChanged();
             songNameEditText.setText("");
+
             // Обновляем список доступных песен
-            availableSongs.remove(songName);
-            availableSongsAdapter.notifyDataSetChanged();
+            allAvailableSongs.remove(songName);
+            filterSongs("");
+
             Toast.makeText(this, "Песня добавлена", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "Ошибка добавления песни", Toast.LENGTH_SHORT).show();
@@ -162,32 +245,73 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     }
 
     private void playSong(int position) {
-        try {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.stop();
-                mediaPlayer.reset();
-            }
-
+        if (isBound && position >= 0 && position < songUris.size()) {
             currentSongIndex = position;
-            String uri = songUris.get(position);
-            mediaPlayer.setDataSource(this, Uri.parse(uri));
-            mediaPlayer.prepare();
-            mediaPlayer.start();
+            musicService.play(position);
 
-            Toast.makeText(this, "Воспроизведение: " + songs.get(position), Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Ошибка воспроизведения", Toast.LENGTH_SHORT).show();
-            Log.e("Playback", "Error playing song", e);
+            Intent playerIntent = new Intent(this, PlayerActivity.class);
+            playerIntent.putExtra("userId", userId);
+            playerIntent.putStringArrayListExtra("songList", songs);
+            playerIntent.putStringArrayListExtra("songUris", songUris);
+            playerIntent.putExtra("currentIndex", position);
+            startActivity(playerIntent);
         }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        if (v.getId() == R.id.songsListView) {
+            menu.setHeaderTitle("Действия с песней");
+            menu.add(0, v.getId(), 0, "Удалить из плейлиста");
+            menu.add(0, v.getId(), 0, "Отмена");
+        }
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        int position = info.position;
+
+        if (item.getTitle().equals("Удалить из плейлиста")) {
+            String songName = songs.get(position);
+            if (dbHelper.removeSongFromPlaylist(playlistId, songName)) {
+                songs.remove(position);
+                if (position < songUris.size()) {
+                    songUris.remove(position);
+                }
+                songsAdapter.notifyDataSetChanged();
+
+                // Обновляем список доступных песен
+                loadAllAvailableSongs();
+                filterSongs(songNameEditText.getText().toString());
+
+                Toast.makeText(this, "Песня удалена из плейлиста", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Ошибка удаления песни", Toast.LENGTH_SHORT).show();
+            }
+            return true;
+        } else if (item.getTitle().equals("Отмена")) {
+            return true;
+        }
+        return super.onContextItemSelected(item);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
         }
         dbHelper.close();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadPlaylistSongs();
+        loadAllAvailableSongs();
+        filterSongs(songNameEditText.getText().toString());
     }
 }

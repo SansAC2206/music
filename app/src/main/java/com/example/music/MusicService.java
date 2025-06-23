@@ -79,6 +79,7 @@ public class MusicService extends Service {
         }
     }
 
+
     public boolean isPlaying() {
         return mediaPlayer != null && mediaPlayer.isPlaying();
     }

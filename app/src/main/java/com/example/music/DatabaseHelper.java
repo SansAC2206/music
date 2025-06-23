@@ -444,4 +444,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return exists;
     }
+
+    public String getMediaUriByTitle(String title, long userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String uri = null;
+
+        Cursor cursor = db.query(
+                TABLE_MEDIA,
+                new String[]{COLUMN_MEDIA_URI},
+                COLUMN_MEDIA_TITLE + " = ? AND " + COLUMN_USER_ADDED + " = ?",
+                new String[]{title, String.valueOf(userId)},
+                null, null, null);
+
+        if (cursor.moveToFirst()) {
+            uri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MEDIA_URI));
+        }
+        cursor.close();
+        db.close();
+        return uri;
+    }
 }
