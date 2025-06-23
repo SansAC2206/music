@@ -10,6 +10,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
 
@@ -71,30 +73,45 @@ public class PlaylistsListActivity extends AppCompatActivity {
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-        menu.setHeaderTitle("Действия с плейлистом");
-        menu.add(0, v.getId(), 0, "Удалить");
-        menu.add(0, v.getId(), 0, "Отмена");
+        if (v.getId() == R.id.playlistsListView) {
+            AdapterView.AdapterContextMenuInfo info =
+                    (AdapterView.AdapterContextMenuInfo) menuInfo;
+            menu.setHeaderTitle("Действия с плейлистом");
+            menu.add(0, v.getId(), 0, "Удалить плейлист");
+            menu.add(0, v.getId(), 0, "Отмена");
+        }
     }
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info =
                 (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-        int position = info.position;
+        final int position = info.position;
 
-        if (item.getTitle().equals("Удалить")) {
-            String playlistName = playlists.get(position);
-            long playlistId = dbHelper.getPlaylistId(playlistName, userId);
+        if (item.getTitle().equals("Удалить плейлист")) {
+            // Показываем диалог подтверждения
+            new AlertDialog.Builder(this)
+                    .setTitle("Удаление плейлиста")
+                    .setMessage("Вы уверены, что хотите удалить этот плейлист?")
+                    .setPositiveButton("Удалить", (dialog, which) -> {
+                        String playlistName = playlists.get(position);
+                        long playlistId = dbHelper.getPlaylistId(playlistName, userId);
 
-            if (dbHelper.deletePlaylist(playlistId)) {
-                playlists.remove(position);
-                playlistsAdapter.notifyDataSetChanged();
-                Toast.makeText(this, "Плейлист удален", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Ошибка удаления плейлиста", Toast.LENGTH_SHORT).show();
-            }
-            return true;
-        } else if (item.getTitle().equals("Отмена")) {
+                        if (dbHelper.deletePlaylist(playlistId)) {
+                            playlists.remove(position);
+                            playlistsAdapter.notifyDataSetChanged();
+                            Toast.makeText(PlaylistsListActivity.this,
+                                    "Плейлист удален",
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(PlaylistsListActivity.this,
+                                    "Ошибка удаления плейлиста",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
+
             return true;
         }
         return super.onContextItemSelected(item);
