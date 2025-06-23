@@ -25,13 +25,17 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Название песни"/>
+            android:hint="Название песни"
+            android:textColor="@color/white"/>
 
         <Button
             android:id="@+id/addSongBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Добавить"/>
+            android:text="Добавить"
+            android:textAlignment="center"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/purgray"/>
     </LinearLayout>
 
     <Button
@@ -39,7 +43,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Показать доступные песни"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/purgray"/>
 
     <TextView
         android:layout_width="match_parent"

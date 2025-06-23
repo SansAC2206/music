@@ -29,7 +29,7 @@
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="23dp"
         android:layout_marginLeft="10dp"
-        android:backgroundTint="@color/black"
+        android:backgroundTint="@color/transparent"
         app:tint="@color/white"
         />
     <TextView
@@ -52,8 +52,8 @@
         app:layout_constraintTop_toBottomOf="@+id/textViewNickReg"
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginLeft="20dp"
-        android:textColor="@color/black"
-        android:background="@color/gray"
+        android:textColor="@color/white"
+        android:background="@color/purgray"
         />
     <TextView
         android:id="@+id/textViewEmailReg"
@@ -77,8 +77,8 @@
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginLeft="20dp"
         android:textAlignment="center"
-        android:textColor="@color/black"
-        android:background="@color/gray"
+        android:textColor="@color/white"
+        android:background="@color/purgray"
         />
     <TextView
         android:id="@+id/textViewPassAuth"
@@ -101,8 +101,8 @@
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginLeft="20dp"
         app:layout_constraintTop_toBottomOf="@id/textViewPassAuth"
-        android:textColor="@color/black"
-        android:background="@color/gray"
+        android:textColor="@color/white"
+        android:background="@color/purgray"
         android:textAlignment="center"
         />
     <Button
@@ -118,8 +118,8 @@
         app:layout_constraintTop_toBottomOf="@+id/editTextPasswordReg"
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginLeft="120dp"
-        android:textColor="@color/black"
-        android:backgroundTint="@color/darkgray"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/purgray"
         />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

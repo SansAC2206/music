@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -59,9 +61,12 @@ public class SearchResultActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
     }
-
+    public void SearchBtnBack_Click(View view) {
+        Intent intent = new Intent(this, SearchActivity.class);
+        startActivity(intent);
+        finish();
+    }
     @Override
     public boolean onSupportNavigateUp() {
         finish();

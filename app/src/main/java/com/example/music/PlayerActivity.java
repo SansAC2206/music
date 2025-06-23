@@ -6,6 +6,7 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -110,6 +111,11 @@ public class PlayerActivity extends AppCompatActivity {
         }
     };
 
+    public void PlayerBtnBack_Click(View view) {
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
     // Метод для форматирования времени (мм:сс)
     private String formatTime(int milliseconds) {
         int seconds = (milliseconds / 1000) % 60;

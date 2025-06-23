@@ -9,14 +9,18 @@
         android:id="@+id/playlistNameEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Название плейлиста"/>
+        android:hint="Название плейлиста"
+        android:textColor="@color/white"/>
 
     <Button
         android:id="@+id/createPlaylistBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Создать плейлист"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/purgray"/>
 
     <ListView
         android:id="@+id/playlistListView"
