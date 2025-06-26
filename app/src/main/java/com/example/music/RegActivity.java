@@ -2,6 +2,7 @@ package com.example.music;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.EditText;
 
@@ -43,6 +44,10 @@ public class RegActivity extends AppCompatActivity {
         else if (passwordEditTextReg.getText().toString().length() < 8) {
             Snackbar.make(view, "Пароль меньше 8 символов!", 2500).show();
         }
+        else if (!isValidEmail(loginEditTextReg.getText().toString()))
+        {
+            Snackbar.make(view, "Это не почта!", 2500).show();
+        }
         else {
             String login = loginEditTextReg.getText().toString();
             if (dbHelper.checkUserExists(login)) {
@@ -76,7 +81,9 @@ public class RegActivity extends AppCompatActivity {
     private boolean editTextIsEmpty(EditText editText){
         return editText.getText().toString().isEmpty();
     }
-
+    public boolean isValidEmail(CharSequence email) {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
     @Override
     protected void onDestroy() {
         dbHelper.close();
