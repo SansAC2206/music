@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<String> adapter;
     private MediaPlayer mediaPlayer = new MediaPlayer();
     private int currentSongIndex = -1;
-    private long userId; // ID текущего пользователя
+    private long userId;
     private DatabaseHelper dbHelper;
 
     private final ActivityResultLauncher<Intent> pickSongLauncher = registerForActivityResult(
@@ -44,22 +44,18 @@ public class MainActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Uri uri = result.getData().getData();
                     try {
-                        // Получаем постоянные права на файл
                         getContentResolver().takePersistableUriPermission(
                                 uri,
                                 Intent.FLAG_GRANT_READ_URI_PERMISSION
                         );
 
-                        // Получаем имя файла
                         String name = getFileName(uri);
 
-                        // Проверяем, есть ли уже эта песня у текущего пользователя
                         if (dbHelper.isMediaExistsForUser(uri.toString(), userId)) {
                             Toast.makeText(this, "Эта песня уже добавлена в ваш аккаунт", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
-                        // Добавляем в базу данных
                         long mediaId = dbHelper.addMedia(
                                 name,
                                 uri.toString(),
@@ -87,7 +83,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Получаем ID пользователя из Intent
+        if (savedInstanceState != null) {
+            currentSongIndex = savedInstanceState.getInt("currentSongIndex", -1);
+        }
+
         userId = getIntent().getLongExtra("userId", -1);
         if (userId == -1) {
             Toast.makeText(this, "Ошибка: пользователь не идентифицирован", Toast.LENGTH_SHORT).show();
@@ -97,7 +96,6 @@ public class MainActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
 
-        // Загружаем песни из базы данных
         songList = new ArrayList<>(dbHelper.getAllMediaTitles(userId));
         songUris = new ArrayList<>(dbHelper.getAllMediaUris(userId));
 
@@ -130,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         listView.setOnItemClickListener((parent, view, position, id) -> {
+            currentSongIndex = position;
             Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
             intent.putExtra("userId", userId);
             intent.putStringArrayListExtra("songList", songList);
@@ -146,7 +145,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // Метод для получения имени файла
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("currentSongIndex", currentSongIndex);
+    }
+
     private String getFileName(Uri uri) {
         String name = null;
         try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
@@ -176,7 +180,6 @@ public class MainActivity extends AppCompatActivity {
                 currentSongIndex = -1;
             }
 
-            // Удаляем песню из базы данных
             String uriToDelete = songUris.get(position);
             SQLiteDatabase db = dbHelper.getWritableDatabase();
             int deletedRows = db.delete(
@@ -193,6 +196,8 @@ public class MainActivity extends AppCompatActivity {
 
                 if (currentSongIndex > position) {
                     currentSongIndex--;
+                } else if (currentSongIndex == position) {
+                    currentSongIndex = -1;
                 }
 
                 Toast.makeText(this, "Песня удалена", Toast.LENGTH_SHORT).show();
