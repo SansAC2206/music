@@ -31,18 +31,18 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     private ArrayAdapter<String> songsAdapter;
     private ArrayAdapter<String> availableSongsAdapter;
     private ArrayList<String> songs = new ArrayList<>();
-    private ArrayList<String> allAvailableSongs = new ArrayList<>(); // Все доступные песни
-    private ArrayList<String> filteredSongs = new ArrayList<>(); // Отфильтрованные песни для отображения
+    private ArrayList<String> allAvailableSongs = new ArrayList<>();
+    private ArrayList<String> filteredSongs = new ArrayList<>();
     private DatabaseHelper dbHelper;
     private String playlistName;
     private long userId;
     private long playlistId;
     private ArrayList<String> songUris = new ArrayList<>();
 
-    // Для воспроизведения музыки через сервис
     private MusicService musicService;
     private boolean isBound = false;
     private int currentSongIndex = -1;
+    private int currentMode = MusicService.MODE_NORMAL;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -50,8 +50,18 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
             musicService = binder.getService();
             isBound = true;
-            if (!songUris.isEmpty()) {
-                musicService.setSongList(songUris, 0);
+
+            // Получаем текущий режим воспроизведения из сервиса
+            currentMode = musicService.getPlaybackMode();
+
+            if (!songs.isEmpty() && !songUris.isEmpty()) {
+                musicService.setSongList(songs, songUris, 0);
+                musicService.setPlaybackMode(currentMode);
+
+                // Если режим REPEAT_ONE и есть текущая песня - воспроизводим ее
+                if (currentMode == MusicService.MODE_REPEAT_ONE && currentSongIndex != -1) {
+                    musicService.play(currentSongIndex);
+                }
             }
         }
 
@@ -66,7 +76,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_playlist_detail);
 
-        // Получаем данные из Intent
         Intent intent = getIntent();
         playlistName = intent.getStringExtra("playlistName");
         userId = intent.getLongExtra("userId", -1);
@@ -79,7 +88,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
 
-        // Инициализация UI элементов
         playlistTitle = findViewById(R.id.playlistTitle);
         songsListView = findViewById(R.id.songsListView);
         availableSongsListView = findViewById(R.id.availableSongsListView);
@@ -87,10 +95,8 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         addSongBtn = findViewById(R.id.addSongBtn);
         searchSongsBtn = findViewById(R.id.searchSongsBtn);
 
-        // Устанавливаем название плейлиста
         playlistTitle.setText(playlistName);
 
-        // Получаем ID плейлиста
         playlistId = dbHelper.getPlaylistId(playlistName, userId);
         if (playlistId == -1) {
             Toast.makeText(this, "Ошибка: плейлист не найден", Toast.LENGTH_SHORT).show();
@@ -98,22 +104,18 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             return;
         }
 
-        // Запускаем сервис
         Intent serviceIntent = new Intent(this, MusicService.class);
         bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
 
-        // Загружаем песни плейлиста
         loadPlaylistSongs();
         loadAllAvailableSongs();
 
-        // Настройка адаптеров
         songsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, songs);
         songsListView.setAdapter(songsAdapter);
 
         availableSongsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, filteredSongs);
         availableSongsListView.setAdapter(availableSongsAdapter);
 
-        // Обработчик ввода текста для поиска песен
         songNameEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -127,7 +129,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
 
-        // Обработчик добавления новой песни по имени
         addSongBtn.setOnClickListener(v -> {
             String songName = songNameEditText.getText().toString().trim();
             if (!songName.isEmpty()) {
@@ -137,20 +138,17 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             }
         });
 
-        // Обработчик поиска песен
         searchSongsBtn.setOnClickListener(v -> {
             loadAllAvailableSongs();
             filterSongs(songNameEditText.getText().toString());
         });
 
-        // Обработчик добавления песни из списка доступных
         availableSongsListView.setOnItemClickListener((parent, view, position, id) -> {
             String selectedSong = filteredSongs.get(position);
             songNameEditText.setText(selectedSong);
             addSongToPlaylist(selectedSong);
         });
 
-        // Обработчик клика по песне в плейлисте (воспроизведение)
         songsListView.setOnItemClickListener((parent, view, position, id) -> {
             playSong(position);
         });
@@ -162,19 +160,16 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         songs.clear();
         songs.addAll(dbHelper.getSongsForPlaylist(playlistId));
 
-        // Загружаем URI песен для воспроизведения
         songUris.clear();
         for (String songName : songs) {
             String uri = dbHelper.getMediaUriByTitle(songName, userId);
             if (uri != null) {
                 songUris.add(uri);
             } else {
-                // Если URI не найден, удаляем песню из плейлиста
                 dbHelper.removeSongFromPlaylist(playlistId, songName);
             }
         }
 
-        // Удаляем песни без URI из списка
         for (int i = songs.size() - 1; i >= 0; i--) {
             if (i >= songUris.size() || songUris.get(i) == null) {
                 songs.remove(i);
@@ -191,22 +186,18 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
     private void loadAllAvailableSongs() {
         allAvailableSongs.clear();
-        // Получаем все песни из медиатеки пользователя
         allAvailableSongs.addAll(dbHelper.getAllMediaTitles(userId));
-        // Убираем песни, которые уже есть в плейлисте
         allAvailableSongs.removeAll(songs);
     }
 
     private void filterSongs(String query) {
         filteredSongs.clear();
         if (query.isEmpty()) {
-            // Если запрос пустой, показываем все доступные песни
             filteredSongs.addAll(allAvailableSongs);
         } else {
-            // Фильтруем песни по введенному тексту
             String lowerCaseQuery = query.toLowerCase();
             for (String song : allAvailableSongs) {
-                if (song.toLowerCase().startsWith(lowerCaseQuery)) {
+                if (song.toLowerCase().contains(lowerCaseQuery)) {
                     filteredSongs.add(song);
                 }
             }
@@ -215,7 +206,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     }
 
     private void addSongToPlaylist(String songName) {
-        // Проверяем, что песня существует в медиатеке
         String uri = dbHelper.getMediaUriByTitle(songName, userId);
         if (uri == null) {
             Toast.makeText(this, "Песня не найдена в вашей медиатеке", Toast.LENGTH_SHORT).show();
@@ -234,7 +224,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             songsAdapter.notifyDataSetChanged();
             songNameEditText.setText("");
 
-            // Обновляем список доступных песен
             allAvailableSongs.remove(songName);
             filterSongs("");
 
@@ -245,10 +234,24 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     }
 
     private void playSong(int position) {
-        if (isBound && position >= 0 && position < songUris.size()) {
+        if (position >= 0 && position < songUris.size()) {
             currentSongIndex = position;
-            musicService.play(position);
 
+            if (isBound) {
+                // Получаем текущий режим воспроизведения
+                currentMode = musicService.getPlaybackMode();
+
+                // Устанавливаем список песен, если он еще не установлен
+                musicService.setSongList(songs, songUris, position);
+
+                // Если режим REPEAT_ONE - немедленно начинаем воспроизведение
+                if (currentMode == MusicService.MODE_REPEAT_ONE) {
+                    musicService.setPlaybackMode(MusicService.MODE_REPEAT_ONE);
+                    musicService.play(position);
+                }
+            }
+
+            // Запускаем PlayerActivity
             Intent playerIntent = new Intent(this, PlayerActivity.class);
             playerIntent.putExtra("userId", userId);
             playerIntent.putStringArrayListExtra("songList", songs);
@@ -282,7 +285,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
                 }
                 songsAdapter.notifyDataSetChanged();
 
-                // Обновляем список доступных песен
                 loadAllAvailableSongs();
                 filterSongs(songNameEditText.getText().toString());
 
@@ -313,5 +315,10 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         loadPlaylistSongs();
         loadAllAvailableSongs();
         filterSongs(songNameEditText.getText().toString());
+
+        // При возвращении в активность обновляем текущий режим воспроизведения
+        if (isBound) {
+            currentMode = musicService.getPlaybackMode();
+        }
     }
 }

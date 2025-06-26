@@ -51,22 +51,32 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <ImageButton
+            android:id="@+id/repeatButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_repeat"
+            android:backgroundTint="@color/transparent"/>
 
         <ImageButton
             android:id="@+id/prevButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:src="@android:drawable/ic_media_previous"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
             android:backgroundTint="@color/transparent"/>
 
         <ImageButton
             android:id="@+id/playPauseButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:src="@android:drawable/ic_media_play"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:src="@android:drawable/ic_media_play"
             android:backgroundTint="@color/transparent"/>
 
         <ImageButton
@@ -74,6 +84,15 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:src="@android:drawable/ic_media_next"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:backgroundTint="@color/transparent"/>
+
+        <ImageButton
+            android:id="@+id/shuffleButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_shuffle"
             android:backgroundTint="@color/transparent"/>
     </LinearLayout>
 </LinearLayout>

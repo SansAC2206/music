@@ -8,4 +8,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="purgray">#8b7d8d92</color>
     <color name="transparent">#00000000</color>
+    <color name="colorAccent">#FF4081</color>
 </resources>
